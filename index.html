@@ -144,19 +144,13 @@ main{padding:1.1rem 1.4rem}
     <button class="tbtn"    id="be" onclick="setTyp('A')">− Ausgabe</button>
     <button class="tbtn ti" id="bi" onclick="setTyp('E')">+ Einnahme</button>
   </div>
-  <div class="fgrid fgrid3">
+  <div class="fgrid" style="grid-template-columns:1fr 1fr;margin-bottom:8px">
     <div class="field"><label>Datum</label><input type="date" id="fd"/></div>
-    <div class="field"><label>Zahlungsart</label>
-      <select id="fz">
-        <option value="">—</option>
-        <option>Bar</option><option>EC-Karte</option><option>Visa-Karte</option>
-        <option>Überweisung</option><option>Lastschrift</option>
-      </select>
-    </div>
-    <div class="field"><label>Betrag €</label><input type="number" id="fb" placeholder="0,00" min="0" step="0.01" inputmode="decimal"/></div>
   </div>
-  <div class="fgrid">
-    <div class="field"><label>Kategorie</label><input type="text" id="fk" placeholder="z. B. Lebensmittel"/></div>
+  <div class="field" style="margin-bottom:8px"><label>Kategorie</label><input type="text" id="fk" placeholder="z. B. Lebensmittel"/></div>
+  <div class="fgrid" style="margin-bottom:8px">
+    <div class="field"><label>Zahlungsart</label><input type="text" id="fz" placeholder="z. B. EC-Karte"/></div>
+    <div class="field"><label>Betrag €</label><input type="number" id="fb" placeholder="0,00" min="0" step="0.01" inputmode="decimal"/></div>
   </div>
   <div class="field" style="margin-bottom:8px"><label>Beschreibung</label><input type="text" id="fbesc" placeholder="z. B. Rewe einkaufen"/></div>
   <div class="brow">
@@ -191,38 +185,6 @@ const KE=["Gehalt","Rente","Nebeneinkommen","Kindergeld","Steuerrückerstattung"
 const KA=["Lebensmittel","Miete / Nebenkosten","Strom / Gas / Wasser","Internet / Telefon","Versicherungen","Arztbesuch / Apotheke","Auto","Benzin","ÖPNV","Kleidung","Drogerie / Hygiene","Restaurant / Café","Freizeit / Hobby","Abonnements / Streaming","Haushalt / Reparaturen","Geschenke","Urlaub / Reisen","Sonstige Ausgaben"];
 const ICONS={"Lebensmittel":"🛒","Miete / Nebenkosten":"🏠","Strom / Gas / Wasser":"⚡","Internet / Telefon":"📡","Versicherungen":"🛡️","Arztbesuch / Apotheke":"🏥","Auto":"🚗","Benzin":"⛽","ÖPNV":"🚌","Kleidung":"👕","Drogerie / Hygiene":"🧴","Restaurant / Café":"🍽️","Freizeit / Hobby":"🎮","Abonnements / Streaming":"📺","Haushalt / Reparaturen":"🔧","Geschenke":"🎁","Urlaub / Reisen":"✈️","Sonstige Ausgaben":"📦","Gehalt":"💼","Rente":"🏦","Nebeneinkommen":"💻","Kindergeld":"👶","Steuerrückerstattung":"🏛️","Sonstige Einnahmen":"💰"};
 
-const KW_MAP=[
-  {kw:["rewe","aldi","lidl","edeka","penny","netto","supermarkt","lebensmittel","einkaufen","kaufland"],k:"Lebensmittel",t:"A"},
-  {kw:["miete","nebenkosten","kaltmiete","warmmiete","wohnung"],k:"Miete / Nebenkosten",t:"A"},
-  {kw:["strom","gas","wasser","heizung","energie"],k:"Strom / Gas / Wasser",t:"A"},
-  {kw:["internet","telefon","handy","mobilfunk","vodafone","telekom","o2"],k:"Internet / Telefon",t:"A"},
-  {kw:["versicherung","haftpflicht","lebensversicherung"],k:"Versicherungen",t:"A"},
-  {kw:["arzt","apotheke","medikament","rezept","zahnarzt","krankenhaus","doktor"],k:"Arztbesuch / Apotheke",t:"A"},
-  {kw:["werkstatt","hauptuntersuchung","tüv","kfz"],k:"Auto",t:"A"},
-  {kw:["benzin","tankstelle","tanken","diesel","sprit","shell","aral","bp"],k:"Benzin",t:"A"},
-  {kw:["bus","bahn","ticket","öpnv","ubahn","straßenbahn","db","nahverkehr"],k:"ÖPNV",t:"A"},
-  {kw:["kleidung","klamotten","schuhe","jacke","hose","zara","h&m"],k:"Kleidung",t:"A"},
-  {kw:["drogerie","dm","rossmann","hygiene","kosmetik","shampoo"],k:"Drogerie / Hygiene",t:"A"},
-  {kw:["restaurant","café","cafe","pizza","döner","essen gehen","mcdonalds","burger","sushi"],k:"Restaurant / Café",t:"A"},
-  {kw:["kino","freizeit","hobby","sport","fitness","konzert"],k:"Freizeit / Hobby",t:"A"},
-  {kw:["netflix","spotify","amazon prime","disney","abo","streaming"],k:"Abonnements / Streaming",t:"A"},
-  {kw:["haushalt","ikea","möbel","baumarkt","werkzeug"],k:"Haushalt / Reparaturen",t:"A"},
-  {kw:["geschenk","geburtstag","weihnachten"],k:"Geschenke",t:"A"},
-  {kw:["urlaub","reise","hotel","flug","ferien"],k:"Urlaub / Reisen",t:"A"},
-  {kw:["gehalt","lohn","monatsgehalt","arbeitgeber"],k:"Gehalt",t:"E"},
-  {kw:["rente","pension"],k:"Rente",t:"E"},
-  {kw:["nebenjob","nebeneinkommen","freelance","honorar"],k:"Nebeneinkommen",t:"E"},
-  {kw:["kindergeld"],k:"Kindergeld",t:"E"},
-  {kw:["steuer","finanzamt","rückerstattung"],k:"Steuerrückerstattung",t:"E"},
-];
-const ZW_MAP=[
-  {kw:["bar","bargeld","cash"],z:"Bar"},
-  {kw:["ec","ec-karte","girokarte","maestro"],z:"EC-Karte"},
-  {kw:["visa","kreditkarte"],z:"Visa-Karte"},
-  {kw:["überweisung","überwiesen","transfer"],z:"Überweisung"},
-  {kw:["lastschrift","einzug","abbuchung"],z:"Lastschrift"},
-];
-
 const now=new Date();
 let vY=now.getFullYear(),vM=now.getMonth(),pY=vY,typ='E';
 let recog=null,listening=false;
@@ -242,56 +204,61 @@ function setStatus(state,txt){
   document.getElementById('stxt').textContent=txt;
 }
 
-// ── Zahlwörter ─────────────────────────────────────────────────────────
-const ZW={'null':0,'ein':1,'eine':1,'eins':1,'zwei':2,'drei':3,'vier':4,'fünf':5,'sechs':6,'sieben':7,'acht':8,'neun':9,'zehn':10,'elf':11,'zwölf':12,'dreizehn':13,'vierzehn':14,'fünfzehn':15,'sechzehn':16,'siebzehn':17,'achtzehn':18,'neunzehn':19,'zwanzig':20,'dreißig':30,'vierzig':40,'fünfzig':50,'sechzig':60,'siebzig':70,'achtzig':80,'neunzig':90,'hundert':100,'zweihundert':200,'dreihundert':300,'vierhundert':400,'fünfhundert':500,'sechshundert':600,'siebenhundert':700,'achthundert':800,'neunhundert':900,'tausend':1000,'zweitausend':2000,'dreitausend':3000,'viertausend':4000,'fünftausend':5000,'sechstausend':6000,'siebentausend':7000,'achttausend':8000,'neuntausend':9000,'zehntausend':10000};
-function zahlwortZuZahl(low){const sorted=Object.entries(ZW).sort((a,b)=>b[1]-a[1]);for(const[w,v]of sorted)if(low.includes(w))return v;return null;}
-
-// ── Lokales Sprach-Parsing ──────────────────────────────────────────────
+// ── Sprach-Parsing ─────────────────────────────────────────────────────
+// Format: "Ausgabe Komma Blumenladen Komma EC Komma 4,99 Euro"
+// Trennzeichen: gesprochenes "Komma", echtes ",", oder ", "
 function parseVoice(text){
-  const low=text.toLowerCase();
+  // Schritt 1: alle Trennvarianten → einheitliches Pipe-Zeichen
+  let s=text;
+  s=s.replace(/\bkomma\b/gi,'|');   // gesprochen: "Komma"
+  s=s.replace(/,\s*/g,'|');         // echtes Komma (manchmal von Chrome eingefügt)
 
-  // 1. Typ: explizites Wort hat IMMER Vorrang vor Kategorie-Keywords
-  let explicitTyp=null;
-  if(/\b(einnahme|einnahmen|verdient|erhalten|bekommen|gutschrift)\b/.test(low)) explicitTyp='E';
-  else if(/\b(ausgabe|ausgaben|bezahlt|gekauft|ausgegeben|kostete|getankt|gegessen)\b/.test(low)) explicitTyp='A';
+  // Schritt 2: Dezimalzahlen schützen — "4|99" wieder zu "4.99"
+  s=s.replace(/(\d)\|(\d{1,2})(?!\d)/g,'$1.$2');
 
-  // 2. Betrag: Ziffern oder Zahlwörter
+  // Schritt 3: splitten
+  const parts=s.split('|').map(p=>p.trim()).filter(Boolean);
+
+  // Debug: in Beschreibung zeigen was erkannt wurde
+  console.log('Parts:', parts);
+
+  // [0] Typ
+  let detTyp=typ; // Fallback: aktuell gewählter Typ-Button
+  if(parts[0]){
+    const t=parts[0].toLowerCase();
+    if(/einnahme/.test(t)) detTyp='E';
+    else if(/ausgabe/.test(t)) detTyp='A';
+  }
+
+  // [1] Kategorie — Freitext
+  const kat=(parts[1]||'').trim();
+
+  // [2] Zahlungsart — Freitext, keine Umwandlung mehr
+  const zahlung=(parts[2]||'').trim();
+
+  // [3] Betrag
   let betrag=null;
-  const bm=low.match(/(\d+)[,.](\d{1,2})\s*(?:euro|€)|(\d+)\s*(?:euro|€)/);
+  const bSrc=parts[3]||'';
+  const bm=bSrc.replace(/[€\s]/g,'').match(/(\d+)[.,](\d{1,2})|(\d+)/);
   if(bm) betrag=bm[1]&&bm[2]?parseFloat(bm[1]+'.'+bm[2]):parseFloat(bm[3]);
-  if(!betrag) betrag=zahlwortZuZahl(low);
-  if(!betrag){const nm=low.match(/\b(\d+)[,.](\d{2})\b|\b(\d{2,5})\b/);if(nm)betrag=nm[1]&&nm[2]?parseFloat(nm[1]+'.'+nm[2]):parseFloat(nm[3]);}
+  // Fallback: Zahl irgendwo im Text
+  if(!betrag){
+    const fm=s.match(/(\d+)\.(\d{1,2})|(\d+)/);
+    if(fm) betrag=fm[1]&&fm[2]?parseFloat(fm[1]+'.'+fm[2]):parseFloat(fm[3]);
+  }
 
-  // 3. Kategorie (Typ-Vorschlag nur wenn kein expliziter Typ)
-  let kat=null,bestScore=0,katTyp=null;
-  for(const e of KW_MAP){let s=e.kw.filter(w=>low.includes(w)).length;if(s>bestScore){bestScore=s;kat=e.k;katTyp=e.t;}}
-  const detTyp=explicitTyp||katTyp;
+  const datum=document.getElementById('fd').value||now.toISOString().split('T')[0];
 
-  // 4. Zahlungsart
-  let zahlung='';
-  for(const e of ZW_MAP){if(e.kw.some(w=>low.includes(w))){zahlung=e.z;break;}}
-
-  // 5. Datum
-  let datum=document.getElementById('fd').value||now.toISOString().split('T')[0];
-  const dm=low.match(/(\d{1,2})\.\s*(\d{1,2})\.?\s*(\d{4})?/);
-  if(dm){const d=dm[1].padStart(2,'0'),mo=dm[2].padStart(2,'0'),yr=dm[3]||vY;datum=`${yr}-${mo}-${d}`;}
-  else if(low.includes('heute'))datum=now.toISOString().split('T')[0];
-  else if(low.includes('gestern')){const g=new Date();g.setDate(g.getDate()-1);datum=g.toISOString().split('T')[0];}
-
-  // 6. Beschreibung: Typ-Wörter und Beträge entfernen
-  let beschr=text.trim().replace(/\b\d+[,.]?\d*\s*(?:euro|€)\b/gi,'').replace(/\b(einnahme|ausgabe|einnahmen|ausgaben)\b/gi,'').replace(/\s+/g,' ').trim();
-  if(beschr.length>60)beschr=beschr.substring(0,60)+'…';
-
-  return{typ:detTyp,betrag,kat,zahlung,datum,beschr};
+  return{typ:detTyp, betrag, kat, zahlung, datum, volltext:text.trim()};
 }
 
 function applyParsed(p){
-  if(p.typ)setTyp(p.typ);
-  if(p.datum)document.getElementById('fd').value=p.datum;
-  if(p.betrag)document.getElementById('fb').value=p.betrag;
-  if(p.zahlung){const s=document.getElementById('fz');for(const o of s.options)if(o.value===p.zahlung){s.value=p.zahlung;break;}}
-  if(p.kat)document.getElementById('fk').value=p.kat;
-  if(p.beschr)document.getElementById('fbesc').value=p.beschr;
+  if(p.typ) setTyp(p.typ);
+  if(p.datum) document.getElementById('fd').value=p.datum;
+  if(p.betrag) document.getElementById('fb').value=p.betrag;
+  document.getElementById('fz').value=p.zahlung||'';
+  document.getElementById('fk').value=p.kat||'';
+  document.getElementById('fbesc').value=p.volltext||'';
 }
 
 function toggleMic(){
@@ -395,7 +362,11 @@ function exportExcel(){
   MONTHS.forEach((m,mi)=>{
     const data=load(vY,mi);
     const rows=[['Datum','Typ','Kategorie','Beschreibung','Zahlungsart','Betrag (€)']];
-    data.forEach(e=>rows.push([e.datum,e.typ==='E'?'Einnahme':'Ausgabe',e.kat||'',e.beschr||'',e.zahlung||'',+e.betrag.toFixed(2)]));
+    data.forEach(e=>{
+      const d=new Date(e.datum);
+      const datumFmt=isNaN(d.getTime())?e.datum:`${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+      rows.push([datumFmt,e.typ==='E'?'Einnahme':'Ausgabe',e.kat||'',e.beschr||'',e.zahlung||'',+e.betrag.toFixed(2)]);
+    });
     const inc=data.filter(e=>e.typ==='E').reduce((s,e)=>s+e.betrag,0);
     const exp=data.filter(e=>e.typ==='A').reduce((s,e)=>s+e.betrag,0);
     rows.push([],['Summe Einnahmen','','','','',+inc.toFixed(2)],['Summe Ausgaben','','','','',+exp.toFixed(2)],['Bilanz','','','','',+(inc-exp).toFixed(2)]);
