@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Haushaltsbuch</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:#0f0f13;color:#e8e6f0;font-family:system-ui,-apple-system,sans-serif;font-size:15px}
+:root{
+  --bg:#0f0f13;--s1:#1a1a22;--s2:#222230;--s3:#2a2a38;
+  --border:#ffffff12;--border2:#ffffff20;
+  --text:#e8e6f0;--muted:#6b697a;--muted2:#9997aa;
+  --income:#4ade80;--income-bg:#4ade8018;--income-border:#4ade8040;
+  --expense:#fb923c;--expense-bg:#fb923c18;--expense-border:#fb923c40;
+  --accent:#a78bfa;--mic:#ef4444;--r:12px;
+}
+.app{max-width:600px;margin:0 auto;padding-bottom:5rem}
+header{padding:1.2rem 1.4rem .9rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#0f0f13;z-index:50;border-bottom:1px solid #ffffff10}
+.logo{font-size:1.1rem;font-weight:800;letter-spacing:.04em;color:#e8e6f0}
+.logo em{color:#a78bfa;font-style:normal}
+.mbadge{font-size:.75rem;color:#9997aa;font-family:monospace;background:#1a1a22;border:1px solid #ffffff20;padding:.3rem .75rem;border-radius:20px;cursor:pointer}
+.mbadge:hover{border-color:#a78bfa;color:#a78bfa}
+main{padding:1.1rem 1.4rem}
+.summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1.2rem}
+.sc{background:#1a1a22;border:1px solid #ffffff12;border-radius:10px;padding:.75rem .85rem}
+.sc-lbl{font-size:.65rem;color:#6b697a;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.3rem}
+.sc-val{font-family:monospace;font-size:1rem;font-weight:600}
+.vi{color:#4ade80}.ve{color:#fb923c}.vbp{color:#4ade80}.vbn{color:#fb923c}
+.vp{background:#1a1a22;border:1px solid #ffffff12;border-radius:var(--r);padding:1.2rem;margin-bottom:1.1rem}
+.vp-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.vp-lbl{font-size:.65rem;color:#6b697a;letter-spacing:.08em;text-transform:uppercase}
+.st-wrap{display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:#6b697a;flex-shrink:0;transition:background .3s}
+.dot.listening{background:#ef4444;box-shadow:0 0 8px #ef4444;animation:blink 1s infinite}
+.dot.ok{background:#4ade80;box-shadow:0 0 6px #4ade80}
+.dot.thinking{background:#a78bfa;box-shadow:0 0 6px #a78bfa}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.st-txt{font-size:.72rem;color:#9997aa;font-family:monospace}
+.mic{width:68px;height:68px;border-radius:50%;border:1.5px solid #ffffff20;background:#222230;display:flex;align-items:center;justify-content:center;cursor:pointer;margin:0 auto .85rem;transition:all .2s}
+.mic:hover{border-color:#a78bfa;background:#a78bfa18}
+.mic.on{border-color:#ef4444;background:#ef444418;animation:mpulse 1.3s infinite}
+@keyframes mpulse{0%{box-shadow:0 0 0 0 #ef444450}70%{box-shadow:0 0 0 14px #ef444400}100%{box-shadow:0 0 0 0 #ef444400}}
+.mic svg{width:26px;height:26px;stroke:#9997aa;transition:stroke .2s}
+.mic.on svg{stroke:#ef4444}
+.tbox{background:#222230;border:1px solid #ffffff12;border-radius:9px;padding:.65rem .9rem;min-height:42px;font-size:.85rem;color:#6b697a;font-style:italic;margin-bottom:.85rem;line-height:1.5}
+.tbox.active{color:#e8e6f0;font-style:normal}
+.trow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.tbtn{padding:.55rem;border-radius:8px;border:1px solid #ffffff20;background:none;color:#9997aa;font-size:.82rem;cursor:pointer;font-weight:700;transition:all .15s;font-family:inherit}
+.tbtn.ti{background:#4ade8018;border-color:#4ade8040;color:#4ade80}
+.tbtn.te{background:#fb923c18;border-color:#fb923c40;color:#fb923c}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.fgrid3{grid-template-columns:1fr 1fr 1fr}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:.65rem;color:#6b697a;letter-spacing:.06em;text-transform:uppercase}
+.field input,.field select{background:#222230;border:1px solid #ffffff20;color:#e8e6f0;border-radius:8px;padding:.5rem .7rem;font-family:monospace;font-size:.85rem;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none}
+.field input:focus,.field select:focus{border-color:#a78bfa}
+.field select option{background:#222230}
+.brow{display:flex;gap:8px;margin-top:.6rem}
+.badd{flex:1;padding:.65rem;background:#a78bfa;color:#fff;border:none;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer;transition:opacity .15s;font-family:inherit}
+.badd:hover{opacity:.85}
+.bxlsx{padding:.65rem .9rem;background:#222230;color:#9997aa;border:1px solid #ffffff20;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
+.bxlsx:hover{border-color:#4ade80;color:#4ade80}
+.lhdr{display:flex;align-items:center;justify-content:space-between;margin:1.2rem 0 .6rem}
+.llbl{font-size:.65rem;color:#6b697a;letter-spacing:.08em;text-transform:uppercase}
+.txlist{display:flex;flex-direction:column;gap:5px}
+.tx{border-radius:10px;padding:.65rem .9rem;display:flex;align-items:center;gap:10px;border:1px solid transparent}
+.tx.ti{background:#4ade8018;border-color:#4ade8035}
+.tx.te{background:#fb923c18;border-color:#fb923c35}
+.tx-ico{font-size:1.1rem;width:28px;text-align:center;flex-shrink:0}
+.tx-body{flex:1;min-width:0}
+.tx-desc{font-size:.875rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-meta{font-size:.68rem;color:#9997aa;margin-top:1px;font-family:monospace}
+.tx-r{text-align:right;flex-shrink:0}
+.tx-amt{font-family:monospace;font-size:.9rem;font-weight:600}
+.tx-amt.ti{color:#4ade80}.tx-amt.te{color:#fb923c}
+.tx-del{background:none;border:none;cursor:pointer;color:#6b697a;font-size:1rem;padding:2px 4px;border-radius:4px;margin-top:2px;display:block}
+.tx-del:hover{color:#fb923c}
+.empty{text-align:center;padding:2rem;color:#6b697a;font-size:.85rem}
+.overlay{display:none;position:fixed;inset:0;background:#000000bb;z-index:200;align-items:flex-end;justify-content:center}
+.overlay.show{display:flex}
+.mpicker{background:#1a1a22;border:1px solid #ffffff20;border-radius:18px 18px 0 0;padding:1.4rem 1.4rem 2.5rem;width:100%;max-width:600px}
+.mp-title{font-size:.65rem;color:#6b697a;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.9rem}
+.mp-yr{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:.9rem}
+.mp-yr span{font-family:monospace;font-size:.95rem;font-weight:600}
+.mp-yr button{background:none;border:1px solid #ffffff20;color:#9997aa;border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.mp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.mp-m{padding:.55rem .3rem;background:#222230;border:1px solid #ffffff12;color:#9997aa;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.mp-m:hover,.mp-m.cur{background:#a78bfa18;border-color:#a78bfa50;color:#a78bfa}
+.toast{position:fixed;bottom:1.4rem;left:50%;transform:translateX(-50%) translateY(70px);background:#222230;border:1px solid #ffffff20;color:#e8e6f0;padding:.65rem 1.2rem;border-radius:30px;font-size:.82rem;font-weight:600;z-index:300;transition:transform .3s;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.reminder{display:none;margin:0 0 1.1rem;background:#fb923c18;border:1px solid #fb923c40;border-radius:12px;padding:1rem 1.1rem;gap:12px;align-items:flex-start}
+.reminder.show{display:flex}
+.reminder-ico{font-size:1.3rem;flex-shrink:0;margin-top:1px}
+.reminder-body{flex:1}
+.reminder-title{font-size:.85rem;font-weight:700;color:#fb923c;margin-bottom:.2rem}
+.reminder-text{font-size:.78rem;color:#9997aa;line-height:1.5}
+.reminder-btns{display:flex;gap:7px;margin-top:.7rem}
+.rbtn-dl{padding:.4rem .85rem;background:#fb923c;color:#fff;border:none;border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.rbtn-dl:hover{opacity:.85}
+.rbtn-later{padding:.4rem .85rem;background:none;color:#9997aa;border:1px solid #ffffff20;border-radius:7px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.rbtn-later:hover{border-color:#9997aa;color:#e8e6f0}
+@media(max-width:400px){.fgrid3{grid-template-columns:1fr 1fr}.mp-grid{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">Haus<em>halt</em></div>
+  <div class="mbadge" id="hdr-m" onclick="openPicker()">— wählen</div>
+</header>
+<main>
+<div class="summary">
+  <div class="sc"><div class="sc-lbl">Einnahmen</div><div class="sc-val vi" id="si">0,00 €</div></div>
+  <div class="sc"><div class="sc-lbl">Ausgaben</div><div class="sc-val ve" id="se">0,00 €</div></div>
+  <div class="sc"><div class="sc-lbl">Bilanz</div><div class="sc-val" id="sb">0,00 €</div></div>
+</div>
+<div class="reminder" id="reminder">
+  <div class="reminder-ico">💾</div>
+  <div class="reminder-body">
+    <div class="reminder-title">Wöchentliche Sicherung fällig</div>
+    <div class="reminder-text">Es ist über eine Woche seit dem letzten Excel-Export vergangen. Bitte jetzt sichern, damit keine Daten verloren gehen.</div>
+    <div class="reminder-btns">
+      <button class="rbtn-dl" onclick="reminderExport()">📥 Jetzt exportieren</button>
+      <button class="rbtn-later" onclick="dismissReminder()">Später erinnern</button>
+    </div>
+  </div>
+</div>
+  <div class="vp-hdr">
+    <span class="vp-lbl">Spracheingabe</span>
+    <span class="st-wrap"><span class="dot" id="dot"></span><span class="st-txt" id="stxt">Bereit</span></span>
+  </div>
+  <div class="mic" id="micbtn" onclick="toggleMic()">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="2" width="6" height="11" rx="3"/>
+      <path d="M5 10a7 7 0 0 0 14 0"/>
+      <line x1="12" y1="19" x2="12" y2="23"/>
+      <line x1="8" y1="23" x2="16" y2="23"/>
+    </svg>
+  </div>
+  <div class="tbox" id="tbox">Mikrofon antippen und Eintrag sprechen…</div>
+  <div class="trow">
+    <button class="tbtn"    id="be" onclick="setTyp('A')">− Ausgabe</button>
+    <button class="tbtn ti" id="bi" onclick="setTyp('E')">+ Einnahme</button>
+  </div>
+  <div class="fgrid fgrid3">
+    <div class="field"><label>Datum</label><input type="date" id="fd"/></div>
+    <div class="field"><label>Zahlungsart</label>
+      <select id="fz">
+        <option value="">—</option>
+        <option>Bar</option><option>EC-Karte</option><option>Visa-Karte</option>
+        <option>Überweisung</option><option>Lastschrift</option>
+      </select>
+    </div>
+    <div class="field"><label>Betrag €</label><input type="number" id="fb" placeholder="0,00" min="0" step="0.01" inputmode="decimal"/></div>
+  </div>
+  <div class="fgrid">
+    <div class="field"><label>Kategorie</label><input type="text" id="fk" placeholder="z. B. Lebensmittel"/></div>
+  </div>
+  <div class="field" style="margin-bottom:8px"><label>Beschreibung</label><input type="text" id="fbesc" placeholder="z. B. Rewe einkaufen"/></div>
+  <div class="brow">
+    <button class="badd" onclick="addEntry()">Eintrag speichern</button>
+    <button class="bxlsx" onclick="exportExcel()">📥 Excel</button>
+  </div>
+</div>
+<div class="lhdr">
+  <span class="llbl">Einträge — <span id="llbl-m"></span></span>
+</div>
+<div class="txlist" id="txlist"></div>
+</main>
+</div>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)closePicker()">
+  <div class="mpicker">
+    <div class="mp-title">Monat wählen</div>
+    <div class="mp-yr">
+      <button onclick="py(-1)">‹</button>
+      <span id="pyr">2025</span>
+      <button onclick="py(1)">›</button>
+    </div>
+    <div class="mp-grid" id="mpgrid"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const MONTHS=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const MS=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+const KE=["Gehalt","Rente","Nebeneinkommen","Kindergeld","Steuerrückerstattung","Sonstige Einnahmen"];
+const KA=["Lebensmittel","Miete / Nebenkosten","Strom / Gas / Wasser","Internet / Telefon","Versicherungen","Arztbesuch / Apotheke","Auto","Benzin","ÖPNV","Kleidung","Drogerie / Hygiene","Restaurant / Café","Freizeit / Hobby","Abonnements / Streaming","Haushalt / Reparaturen","Geschenke","Urlaub / Reisen","Sonstige Ausgaben"];
+const ICONS={"Lebensmittel":"🛒","Miete / Nebenkosten":"🏠","Strom / Gas / Wasser":"⚡","Internet / Telefon":"📡","Versicherungen":"🛡️","Arztbesuch / Apotheke":"🏥","Auto":"🚗","Benzin":"⛽","ÖPNV":"🚌","Kleidung":"👕","Drogerie / Hygiene":"🧴","Restaurant / Café":"🍽️","Freizeit / Hobby":"🎮","Abonnements / Streaming":"📺","Haushalt / Reparaturen":"🔧","Geschenke":"🎁","Urlaub / Reisen":"✈️","Sonstige Ausgaben":"📦","Gehalt":"💼","Rente":"🏦","Nebeneinkommen":"💻","Kindergeld":"👶","Steuerrückerstattung":"🏛️","Sonstige Einnahmen":"💰"};
+
+const KW_MAP=[
+  {kw:["rewe","aldi","lidl","edeka","penny","netto","supermarkt","lebensmittel","einkaufen","kaufland"],k:"Lebensmittel",t:"A"},
+  {kw:["miete","nebenkosten","kaltmiete","warmmiete","wohnung"],k:"Miete / Nebenkosten",t:"A"},
+  {kw:["strom","gas","wasser","heizung","energie"],k:"Strom / Gas / Wasser",t:"A"},
+  {kw:["internet","telefon","handy","mobilfunk","vodafone","telekom","o2"],k:"Internet / Telefon",t:"A"},
+  {kw:["versicherung","haftpflicht","lebensversicherung"],k:"Versicherungen",t:"A"},
+  {kw:["arzt","apotheke","medikament","rezept","zahnarzt","krankenhaus","doktor"],k:"Arztbesuch / Apotheke",t:"A"},
+  {kw:["werkstatt","hauptuntersuchung","tüv","kfz"],k:"Auto",t:"A"},
+  {kw:["benzin","tankstelle","tanken","diesel","sprit","shell","aral","bp"],k:"Benzin",t:"A"},
+  {kw:["bus","bahn","ticket","öpnv","ubahn","straßenbahn","db","nahverkehr"],k:"ÖPNV",t:"A"},
+  {kw:["kleidung","klamotten","schuhe","jacke","hose","zara","h&m"],k:"Kleidung",t:"A"},
+  {kw:["drogerie","dm","rossmann","hygiene","kosmetik","shampoo"],k:"Drogerie / Hygiene",t:"A"},
+  {kw:["restaurant","café","cafe","pizza","döner","essen gehen","mcdonalds","burger","sushi"],k:"Restaurant / Café",t:"A"},
+  {kw:["kino","freizeit","hobby","sport","fitness","konzert"],k:"Freizeit / Hobby",t:"A"},
+  {kw:["netflix","spotify","amazon prime","disney","abo","streaming"],k:"Abonnements / Streaming",t:"A"},
+  {kw:["haushalt","ikea","möbel","baumarkt","werkzeug"],k:"Haushalt / Reparaturen",t:"A"},
+  {kw:["geschenk","geburtstag","weihnachten"],k:"Geschenke",t:"A"},
+  {kw:["urlaub","reise","hotel","flug","ferien"],k:"Urlaub / Reisen",t:"A"},
+  {kw:["gehalt","lohn","monatsgehalt","arbeitgeber"],k:"Gehalt",t:"E"},
+  {kw:["rente","pension"],k:"Rente",t:"E"},
+  {kw:["nebenjob","nebeneinkommen","freelance","honorar"],k:"Nebeneinkommen",t:"E"},
+  {kw:["kindergeld"],k:"Kindergeld",t:"E"},
+  {kw:["steuer","finanzamt","rückerstattung"],k:"Steuerrückerstattung",t:"E"},
+];
+const ZW_MAP=[
+  {kw:["bar","bargeld","cash"],z:"Bar"},
+  {kw:["ec","ec-karte","girokarte","maestro"],z:"EC-Karte"},
+  {kw:["visa","kreditkarte"],z:"Visa-Karte"},
+  {kw:["überweisung","überwiesen","transfer"],z:"Überweisung"},
+  {kw:["lastschrift","einzug","abbuchung"],z:"Lastschrift"},
+];
+
+const now=new Date();
+let vY=now.getFullYear(),vM=now.getMonth(),pY=vY,typ='E';
+let recog=null,listening=false;
+
+function key(y,m){return`hb_${y}_${m}`}
+function load(y,m){return JSON.parse(localStorage.getItem(key(y,m))||'[]')}
+function save(y,m,d){localStorage.setItem(key(y,m),JSON.stringify(d))}
+function fmt(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'}
+
+function setTyp(t){
+  typ=t;
+  document.getElementById('bi').className='tbtn'+(t==='E'?' ti':'');
+  document.getElementById('be').className='tbtn'+(t==='A'?' te':'');
+}
+function setStatus(state,txt){
+  document.getElementById('dot').className='dot '+state;
+  document.getElementById('stxt').textContent=txt;
+}
+
+// ── Zahlwörter ─────────────────────────────────────────────────────────
+const ZW={'null':0,'ein':1,'eine':1,'eins':1,'zwei':2,'drei':3,'vier':4,'fünf':5,'sechs':6,'sieben':7,'acht':8,'neun':9,'zehn':10,'elf':11,'zwölf':12,'dreizehn':13,'vierzehn':14,'fünfzehn':15,'sechzehn':16,'siebzehn':17,'achtzehn':18,'neunzehn':19,'zwanzig':20,'dreißig':30,'vierzig':40,'fünfzig':50,'sechzig':60,'siebzig':70,'achtzig':80,'neunzig':90,'hundert':100,'zweihundert':200,'dreihundert':300,'vierhundert':400,'fünfhundert':500,'sechshundert':600,'siebenhundert':700,'achthundert':800,'neunhundert':900,'tausend':1000,'zweitausend':2000,'dreitausend':3000,'viertausend':4000,'fünftausend':5000,'sechstausend':6000,'siebentausend':7000,'achttausend':8000,'neuntausend':9000,'zehntausend':10000};
+function zahlwortZuZahl(low){const sorted=Object.entries(ZW).sort((a,b)=>b[1]-a[1]);for(const[w,v]of sorted)if(low.includes(w))return v;return null;}
+
+// ── Lokales Sprach-Parsing ──────────────────────────────────────────────
+function parseVoice(text){
+  const low=text.toLowerCase();
+
+  // 1. Typ: explizites Wort hat IMMER Vorrang vor Kategorie-Keywords
+  let explicitTyp=null;
+  if(/\b(einnahme|einnahmen|verdient|erhalten|bekommen|gutschrift)\b/.test(low)) explicitTyp='E';
+  else if(/\b(ausgabe|ausgaben|bezahlt|gekauft|ausgegeben|kostete|getankt|gegessen)\b/.test(low)) explicitTyp='A';
+
+  // 2. Betrag: Ziffern oder Zahlwörter
+  let betrag=null;
+  const bm=low.match(/(\d+)[,.](\d{1,2})\s*(?:euro|€)|(\d+)\s*(?:euro|€)/);
+  if(bm) betrag=bm[1]&&bm[2]?parseFloat(bm[1]+'.'+bm[2]):parseFloat(bm[3]);
+  if(!betrag) betrag=zahlwortZuZahl(low);
+  if(!betrag){const nm=low.match(/\b(\d+)[,.](\d{2})\b|\b(\d{2,5})\b/);if(nm)betrag=nm[1]&&nm[2]?parseFloat(nm[1]+'.'+nm[2]):parseFloat(nm[3]);}
+
+  // 3. Kategorie (Typ-Vorschlag nur wenn kein expliziter Typ)
+  let kat=null,bestScore=0,katTyp=null;
+  for(const e of KW_MAP){let s=e.kw.filter(w=>low.includes(w)).length;if(s>bestScore){bestScore=s;kat=e.k;katTyp=e.t;}}
+  const detTyp=explicitTyp||katTyp;
+
+  // 4. Zahlungsart
+  let zahlung='';
+  for(const e of ZW_MAP){if(e.kw.some(w=>low.includes(w))){zahlung=e.z;break;}}
+
+  // 5. Datum
+  let datum=document.getElementById('fd').value||now.toISOString().split('T')[0];
+  const dm=low.match(/(\d{1,2})\.\s*(\d{1,2})\.?\s*(\d{4})?/);
+  if(dm){const d=dm[1].padStart(2,'0'),mo=dm[2].padStart(2,'0'),yr=dm[3]||vY;datum=`${yr}-${mo}-${d}`;}
+  else if(low.includes('heute'))datum=now.toISOString().split('T')[0];
+  else if(low.includes('gestern')){const g=new Date();g.setDate(g.getDate()-1);datum=g.toISOString().split('T')[0];}
+
+  // 6. Beschreibung: Typ-Wörter und Beträge entfernen
+  let beschr=text.trim().replace(/\b\d+[,.]?\d*\s*(?:euro|€)\b/gi,'').replace(/\b(einnahme|ausgabe|einnahmen|ausgaben)\b/gi,'').replace(/\s+/g,' ').trim();
+  if(beschr.length>60)beschr=beschr.substring(0,60)+'…';
+
+  return{typ:detTyp,betrag,kat,zahlung,datum,beschr};
+}
+
+function applyParsed(p){
+  if(p.typ)setTyp(p.typ);
+  if(p.datum)document.getElementById('fd').value=p.datum;
+  if(p.betrag)document.getElementById('fb').value=p.betrag;
+  if(p.zahlung){const s=document.getElementById('fz');for(const o of s.options)if(o.value===p.zahlung){s.value=p.zahlung;break;}}
+  if(p.kat)document.getElementById('fk').value=p.kat;
+  if(p.beschr)document.getElementById('fbesc').value=p.beschr;
+}
+
+function toggleMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){showToast('❌ Spracheingabe nur in Chrome verfügbar');return;}
+  if(listening){recog&&recog.stop();return;}
+  recog=new SR();
+  recog.lang='de-DE';
+  recog.interimResults=true;
+  recog.maxAlternatives=1;
+  recog.onstart=()=>{
+    listening=true;
+    document.getElementById('micbtn').classList.add('on');
+    setStatus('listening','Höre zu…');
+    const tb=document.getElementById('tbox');
+    tb.textContent='…';tb.classList.remove('active');
+  };
+  recog.onresult=(e)=>{
+    const t=Array.from(e.results).map(r=>r[0].transcript).join(' ');
+    const tb=document.getElementById('tbox');
+    tb.textContent=t;tb.classList.add('active');
+  };
+  recog.onend=()=>{
+    listening=false;
+    document.getElementById('micbtn').classList.remove('on');
+    const text=document.getElementById('tbox').textContent;
+    if(text&&text!=='…'&&!text.includes('antippen')){
+      setStatus('thinking','Auswerte…');
+      setTimeout(()=>{
+        try{const p=parseVoice(text);applyParsed(p);setStatus('ok','Felder gefüllt ✓');showToast('✓ Sprachtext ausgewertet');}
+        catch(err){setStatus('','Fehler');showToast('Felder bitte manuell prüfen');}
+      },200);
+    } else setStatus('','Bereit');
+  };
+  recog.onerror=(e)=>{
+    listening=false;
+    document.getElementById('micbtn').classList.remove('on');
+    const msg={'not-allowed':'Mikrofon-Zugriff verweigert – bitte in Browser-Einstellungen erlauben','no-speech':'Kein Ton erkannt','network':'Netzwerk-Fehler'}[e.error]||'Fehler: '+e.error;
+    setStatus('','');showToast('❌ '+msg);
+  };
+  recog.start();
+}
+
+function addEntry(){
+  const datum=document.getElementById('fd').value;
+  const betrag=parseFloat(document.getElementById('fb').value);
+  if(!datum||isNaN(betrag)||betrag<=0){showToast('⚠️ Datum und Betrag ausfüllen');return;}
+  const data=load(vY,vM);
+  data.unshift({id:Date.now(),typ,datum,betrag,kat:document.getElementById('fk').value.trim(),beschr:document.getElementById('fbesc').value.trim(),zahlung:document.getElementById('fz').value});
+  save(vY,vM,data);
+  document.getElementById('fb').value='';
+  document.getElementById('fbesc').value='';
+  document.getElementById('fk').value='';
+  document.getElementById('fz').value='';
+  document.getElementById('tbox').textContent='Mikrofon antippen und Eintrag sprechen…';
+  document.getElementById('tbox').classList.remove('active');
+  setStatus('','Bereit');
+  render();showToast('✓ Eintrag gespeichert');
+}
+function delEntry(id){save(vY,vM,load(vY,vM).filter(e=>e.id!==id));render();}
+
+function render(){
+  const data=load(vY,vM);
+  const inc=data.filter(e=>e.typ==='E').reduce((s,e)=>s+e.betrag,0);
+  const exp=data.filter(e=>e.typ==='A').reduce((s,e)=>s+e.betrag,0);
+  const bal=inc-exp;
+  document.getElementById('si').textContent=fmt(inc);
+  document.getElementById('se').textContent=fmt(exp);
+  const sb=document.getElementById('sb');
+  sb.textContent=fmt(bal);sb.className='sc-val '+(bal>=0?'vbp':'vbn');
+  document.getElementById('hdr-m').textContent=MS[vM]+' '+vY;
+  document.getElementById('llbl-m').textContent=MONTHS[vM]+' '+vY;
+  const list=document.getElementById('txlist');
+  if(!data.length){list.innerHTML='<div class="empty">Noch keine Einträge für diesen Monat</div>';return;}
+  list.innerHTML=data.map(e=>{
+    const cls=e.typ==='E'?'ti':'te';
+    const sign=e.typ==='E'?'+':'−';
+    const ico=ICONS[e.kat]||(e.typ==='E'?'💰':'📦');
+    const d=new Date(e.datum);
+    const ds=isNaN(d.getTime())?e.datum:d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
+    const meta=[ds,e.kat,e.zahlung].filter(Boolean).join(' · ');
+    return`<div class="tx ${cls}"><div class="tx-ico">${ico}</div><div class="tx-body"><div class="tx-desc">${e.beschr||e.kat||'—'}</div><div class="tx-meta">${meta}</div></div><div class="tx-r"><div class="tx-amt ${cls}">${sign}${fmt(e.betrag)}</div><button class="tx-del" onclick="delEntry(${e.id})">×</button></div></div>`;
+  }).join('');
+}
+
+function exportExcel(){
+  if(typeof XLSX==='undefined'){showToast('Bibliothek lädt noch…');return;}
+  const wb=XLSX.utils.book_new();
+  const ovR=[['Monat','Einnahmen (€)','Ausgaben (€)','Bilanz (€)']];
+  MONTHS.forEach((m,mi)=>{
+    const d=load(vY,mi);
+    const i=d.filter(e=>e.typ==='E').reduce((s,e)=>s+e.betrag,0);
+    const x=d.filter(e=>e.typ==='A').reduce((s,e)=>s+e.betrag,0);
+    ovR.push([m,+i.toFixed(2),+x.toFixed(2),+(i-x).toFixed(2)]);
+  });
+  const tot=ovR.slice(1).reduce((a,r)=>[null,a[1]+r[1],a[2]+r[2],a[3]+r[3]],['',0,0,0]);
+  ovR.push(['GESAMT',+tot[1].toFixed(2),+tot[2].toFixed(2),+tot[3].toFixed(2)]);
+  const wsOv=XLSX.utils.aoa_to_sheet(ovR);
+  wsOv['!cols']=[{wch:16},{wch:16},{wch:16},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,wsOv,'Jahresübersicht');
+  MONTHS.forEach((m,mi)=>{
+    const data=load(vY,mi);
+    const rows=[['Datum','Typ','Kategorie','Beschreibung','Zahlungsart','Betrag (€)']];
+    data.forEach(e=>rows.push([e.datum,e.typ==='E'?'Einnahme':'Ausgabe',e.kat||'',e.beschr||'',e.zahlung||'',+e.betrag.toFixed(2)]));
+    const inc=data.filter(e=>e.typ==='E').reduce((s,e)=>s+e.betrag,0);
+    const exp=data.filter(e=>e.typ==='A').reduce((s,e)=>s+e.betrag,0);
+    rows.push([],['Summe Einnahmen','','','','',+inc.toFixed(2)],['Summe Ausgaben','','','','',+exp.toFixed(2)],['Bilanz','','','','',+(inc-exp).toFixed(2)]);
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:13},{wch:12},{wch:22},{wch:28},{wch:14},{wch:13}];
+    XLSX.utils.book_append_sheet(wb,ws,m);
+  });
+  const dl=new Date();
+  const dlStr=`${dl.getFullYear()}-${String(dl.getMonth()+1).padStart(2,'0')}-${String(dl.getDate()).padStart(2,'0')}`;
+  XLSX.writeFile(wb,`Haushaltsbuch_${vY}_${dlStr}.xlsx`);
+  localStorage.setItem(REMINDER_KEY,Date.now().toString());
+  localStorage.removeItem(SNOOZE_KEY);
+  document.getElementById('reminder').classList.remove('show');
+  showToast('✓ Excel heruntergeladen');
+}
+
+function openPicker(){pY=vY;renderPicker();document.getElementById('overlay').classList.add('show')}
+function closePicker(){document.getElementById('overlay').classList.remove('show')}
+function py(d){pY+=d;renderPicker()}
+function renderPicker(){
+  document.getElementById('pyr').textContent=pY;
+  document.getElementById('mpgrid').innerHTML=MS.map((m,i)=>`<button class="mp-m${pY===vY&&i===vM?' cur':''}" onclick="selMonth(${pY},${i})">${m}</button>`).join('');
+}
+function selMonth(y,m){vY=y;vM=m;closePicker();render()}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ── Wöchentliche Export-Erinnerung ────────────────────────────────────
+const REMINDER_KEY='hb_last_export';
+const SNOOZE_KEY='hb_snooze_until';
+const ONE_WEEK=7*24*60*60*1000;
+const ONE_DAY=24*60*60*1000;
+
+function checkReminder(){
+  const snoozeUntil=parseInt(localStorage.getItem(SNOOZE_KEY)||'0');
+  if(Date.now()<snoozeUntil)return;
+  const lastExport=parseInt(localStorage.getItem(REMINDER_KEY)||'0');
+  const el=document.getElementById('reminder');
+  if(!lastExport||Date.now()-lastExport>ONE_WEEK){
+    el.classList.add('show');
+  } else {
+    el.classList.remove('show');
+  }
+}
+
+function reminderExport(){
+  exportExcel();
+  localStorage.setItem(REMINDER_KEY,Date.now().toString());
+  localStorage.removeItem(SNOOZE_KEY);
+  document.getElementById('reminder').classList.remove('show');
+}
+
+function dismissReminder(){
+  localStorage.setItem(SNOOZE_KEY,(Date.now()+ONE_DAY).toString());
+  document.getElementById('reminder').classList.remove('show');
+  showToast('⏰ Morgen erneut erinnert');
+}
+
+// Beim Export-Button auch Zeitstempel setzen
+const _origExport=exportExcel;
+// (Zeitstempel wird über reminderExport gesetzt wenn über Banner exportiert)
+
+document.getElementById('fd').value=now.toISOString().split('T')[0];
+render();
+checkReminder();
+</script>
+</body>
+</html>
