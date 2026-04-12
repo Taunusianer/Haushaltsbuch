@@ -101,14 +101,37 @@ main{padding:1.1rem 1.4rem}
 .rbtn-dl:hover{opacity:.85}
 .rbtn-later{padding:.4rem .85rem;background:none;color:#9997aa;border:1px solid #ffffff20;border-radius:7px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
 .rbtn-later:hover{border-color:#9997aa;color:#e8e6f0}
-@media(max-width:400px){.fgrid3{grid-template-columns:1fr 1fr}.mp-grid{grid-template-columns:repeat(3,1fr)}}
+.gs-dot{width:10px;height:10px;border-radius:50%;background:#6b697a;cursor:pointer;transition:background .3s;flex-shrink:0}
+.gs-dot.connected{background:#4ade80;box-shadow:0 0 6px #4ade80}
+.gs-dot.error{background:#ef4444;box-shadow:0 0 6px #ef4444}
+.settings-overlay{display:none;position:fixed;inset:0;background:#000000bb;z-index:300;align-items:flex-end;justify-content:center}
+.settings-overlay.show{display:flex}
+.settings-panel{background:#1a1a22;border:1px solid #ffffff20;border-radius:18px 18px 0 0;padding:1.5rem 1.4rem 2.5rem;width:100%;max-width:600px}
+.sp-title{font-size:.75rem;color:#6b697a;letter-spacing:.08em;text-transform:uppercase;margin-bottom:1rem}
+.sp-desc{font-size:.8rem;color:#9997aa;line-height:1.6;margin-bottom:1rem}
+.sp-desc a{color:#a78bfa;text-decoration:none}
+.sp-field{display:flex;flex-direction:column;gap:5px;margin-bottom:.8rem}
+.sp-field label{font-size:.68rem;color:#6b697a;letter-spacing:.06em;text-transform:uppercase}
+.sp-field input{background:#222230;border:1px solid #ffffff20;color:#e8e6f0;border-radius:8px;padding:.55rem .75rem;font-family:monospace;font-size:.78rem;outline:none;transition:border-color .15s}
+.sp-field input:focus{border-color:#a78bfa}
+.sp-btns{display:flex;gap:8px;margin-top:.5rem}
+.sp-save{flex:1;padding:.6rem;background:#a78bfa;color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit}
+.sp-save:hover{opacity:.85}
+.sp-test{padding:.6rem .9rem;background:#222230;color:#9997aa;border:1px solid #ffffff20;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit}
+.sp-test:hover{border-color:#a78bfa;color:#a78bfa}
+.sp-status{font-size:.75rem;margin-top:.6rem;padding:.5rem .75rem;border-radius:7px;display:none}
+.sp-status.ok{display:block;background:#4ade8018;color:#4ade80;border:1px solid #4ade8030}
+.sp-status.err{display:block;background:#ef444418;color:#ef4444;border:1px solid #ef444430}
 </style>
 </head>
 <body>
 <div class="app">
 <header>
   <div class="logo">Haus<em>halt</em></div>
-  <div class="mbadge" id="hdr-m" onclick="openPicker()">— wählen</div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="gs-dot" id="gs-dot" title="Google Sheets Status" onclick="openSettings()"></div>
+    <div class="mbadge" id="hdr-m" onclick="openPicker()">— wählen</div>
+  </div>
 </header>
 <main>
 <div class="summary">
@@ -165,7 +188,25 @@ main{padding:1.1rem 1.4rem}
 </main>
 </div>
 
-<div class="overlay" id="overlay" onclick="if(event.target===this)closePicker()">
+<!-- Settings / Google Sheets -->
+<div class="settings-overlay" id="settings-overlay" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-panel">
+    <div class="sp-title">⚙️ Google Sheets Verbindung</div>
+    <div class="sp-desc">
+      Trage hier die URL deines Google Apps Scripts ein.<br>
+      <a href="#" onclick="showSetupHelp()">Wie richte ich das ein? →</a>
+    </div>
+    <div class="sp-field">
+      <label>Apps Script URL</label>
+      <input type="url" id="gs-url" placeholder="https://script.google.com/macros/s/…/exec"/>
+    </div>
+    <div class="sp-btns">
+      <button class="sp-save" onclick="saveSettings()">Speichern</button>
+      <button class="sp-test" onclick="testConnection()">Verbindung testen</button>
+    </div>
+    <div class="sp-status" id="sp-status"></div>
+  </div>
+</div>
   <div class="mpicker">
     <div class="mp-title">Monat wählen</div>
     <div class="mp-yr">
@@ -302,13 +343,95 @@ function toggleMic(){
   recog.start();
 }
 
+// ── Google Sheets Integration ──────────────────────────────────────────
+const GS_URL_KEY='hb_gs_url';
+
+function getGsUrl(){return localStorage.getItem(GS_URL_KEY)||'';}
+
+function updateGsDot(){
+  const dot=document.getElementById('gs-dot');
+  if(!dot)return;
+  const url=getGsUrl();
+  dot.className='gs-dot'+(url?' connected':'');
+  dot.title=url?'Google Sheets verbunden — klicken zum Ändern':'Google Sheets nicht verbunden — klicken zum Einrichten';
+}
+
+function openSettings(){
+  document.getElementById('gs-url').value=getGsUrl();
+  document.getElementById('sp-status').className='sp-status';
+  document.getElementById('settings-overlay').classList.add('show');
+}
+function closeSettings(){document.getElementById('settings-overlay').classList.remove('show');}
+
+function saveSettings(){
+  const url=document.getElementById('gs-url').value.trim();
+  localStorage.setItem(GS_URL_KEY,url);
+  updateGsDot();
+  closeSettings();
+  showToast(url?'✓ Google Sheets URL gespeichert':'URL gelöscht — nur lokale Speicherung');
+}
+
+async function testConnection(){
+  const url=document.getElementById('gs-url').value.trim();
+  if(!url){showSpStatus('err','Bitte zuerst eine URL eingeben.');return;}
+  showSpStatus('','Verbinde…');
+  try{
+    const r=await fetch(`${url}?month=Januar&year=2026`,{method:'GET'});
+    const d=await r.json();
+    if(d.status==='ok') showSpStatus('ok','✓ Verbindung erfolgreich! Google Sheet ist erreichbar.');
+    else showSpStatus('err','Fehler vom Script: '+d.message);
+  }catch(e){
+    showSpStatus('err','❌ Verbindung fehlgeschlagen. URL prüfen oder Script neu deployen.');
+  }
+}
+
+function showSpStatus(type,msg){
+  const el=document.getElementById('sp-status');
+  el.textContent=msg;
+  el.className='sp-status'+(type?' '+type:'');
+}
+
+function showSetupHelp(){
+  closeSettings();
+  showToast('Anleitung: Schritt-für-Schritt PDF wurde geöffnet');
+  alert(`Einrichtung Google Apps Script:\n\n1. Öffne dein Google Sheet\n2. Klicke auf "Erweiterungen" → "Apps Script"\n3. Füge den Inhalt der Datei haushaltsbuch-script.gs ein\n4. Klicke auf "Bereitstellen" → "Neue Bereitstellung"\n5. Typ: Web-App | Ausführen als: Ich | Zugriff: Jeder\n6. Bestätige mit deinem Google-Konto\n7. Kopiere die angezeigte URL hier hinein`);
+}
+
+// ── Eintrag in Google Sheets schreiben ────────────────────────────────
+async function sendToSheets(entry){
+  const url=getGsUrl();
+  if(!url)return{ok:false,local:true};
+  try{
+    const r=await fetch(url,{
+      method:'POST',
+      body:JSON.stringify(entry)
+    });
+    const d=await r.json();
+    return{ok:d.status==='ok',row:d.row,sheet:d.sheet};
+  }catch(e){
+    console.warn('Google Sheets Fehler:',e);
+    return{ok:false,error:e.toString()};
+  }
+}
+
 function addEntry(){
   const datum=document.getElementById('fd').value;
   const betrag=parseFloat(document.getElementById('fb').value);
   if(!datum||isNaN(betrag)||betrag<=0){showToast('⚠️ Datum und Betrag ausfüllen');return;}
+
+  const entry={
+    id:Date.now(),typ,datum,betrag,
+    kat:document.getElementById('fk').value.trim(),
+    beschr:document.getElementById('fbesc').value.trim(),
+    zahlung:document.getElementById('fz').value.trim()
+  };
+
+  // Immer lokal speichern
   const data=load(vY,vM);
-  data.unshift({id:Date.now(),typ,datum,betrag,kat:document.getElementById('fk').value.trim(),beschr:document.getElementById('fbesc').value.trim(),zahlung:document.getElementById('fz').value});
+  data.unshift(entry);
   save(vY,vM,data);
+
+  // Felder leeren
   document.getElementById('fb').value='';
   document.getElementById('fbesc').value='';
   document.getElementById('fk').value='';
@@ -316,7 +439,20 @@ function addEntry(){
   document.getElementById('tbox').textContent='Mikrofon antippen und Eintrag sprechen…';
   document.getElementById('tbox').classList.remove('active');
   setStatus('','Bereit');
-  render();showToast('✓ Eintrag gespeichert');
+  render();
+
+  // An Google Sheets senden (im Hintergrund)
+  const gsUrl=getGsUrl();
+  if(gsUrl){
+    showToast('💾 Speichere in Google Sheets…');
+    sendToSheets(entry).then(res=>{
+      if(res.ok) showToast(`✓ In Google Sheets gespeichert (${res.sheet}, Zeile ${res.row})`);
+      else if(res.local) showToast('✓ Lokal gespeichert (kein Google Sheets)');
+      else showToast('⚠️ Lokal gespeichert – Google Sheets fehlgeschlagen');
+    });
+  } else {
+    showToast('✓ Eintrag gespeichert');
+  }
 }
 function delEntry(id){save(vY,vM,load(vY,vM).filter(e=>e.id!==id));render();}
 
@@ -434,6 +570,7 @@ const _origExport=exportExcel;
 // (Zeitstempel wird über reminderExport gesetzt wenn über Banner exportiert)
 
 document.getElementById('fd').value=now.toISOString().split('T')[0];
+updateGsDot();
 render();
 checkReminder();
 </script>
