@@ -397,21 +397,52 @@ function showSetupHelp(){
   alert(`Einrichtung Google Apps Script:\n\n1. Öffne dein Google Sheet\n2. Klicke auf "Erweiterungen" → "Apps Script"\n3. Füge den Inhalt der Datei haushaltsbuch-script.gs ein\n4. Klicke auf "Bereitstellen" → "Neue Bereitstellung"\n5. Typ: Web-App | Ausführen als: Ich | Zugriff: Jeder\n6. Bestätige mit deinem Google-Konto\n7. Kopiere die angezeigte URL hier hinein`);
 }
 
-// ── Eintrag in Google Sheets schreiben ────────────────────────────────
-async function sendToSheets(entry){
-  const url=getGsUrl();
-  if(!url)return{ok:false,local:true};
-  try{
-    const r=await fetch(url,{
-      method:'POST',
-      body:JSON.stringify(entry)
+// ── Eintrag in Google Sheets schreiben (CORS-frei via Form-Submit) ─────
+function sendToSheets(entry){
+  return new Promise((resolve)=>{
+    const url=getGsUrl();
+    if(!url){resolve({ok:false,local:true});return;}
+
+    // Eindeutiger Callback-Name
+    const cbName='gsCallback_'+Date.now();
+
+    // Timeout nach 10 Sekunden
+    const timeout=setTimeout(()=>{
+      cleanup();
+      resolve({ok:false,error:'Timeout'});
+    },10000);
+
+    function cleanup(){
+      delete window[cbName];
+      const s=document.getElementById(cbName);
+      if(s)s.remove();
+      clearTimeout(timeout);
+    }
+
+    // JSONP-Callback
+    window[cbName]=function(data){
+      cleanup();
+      resolve({ok:data.status==='ok',row:data.row,sheet:data.sheet,error:data.message});
+    };
+
+    // Daten als URL-Parameter kodieren + Callback
+    const params=new URLSearchParams({
+      callback: cbName,
+      datum:    entry.datum,
+      typ:      entry.typ,
+      kat:      entry.kat||'',
+      zahlung:  entry.zahlung||'',
+      betrag:   entry.betrag,
+      beschr:   entry.beschr||''
     });
-    const d=await r.json();
-    return{ok:d.status==='ok',row:d.row,sheet:d.sheet};
-  }catch(e){
-    console.warn('Google Sheets Fehler:',e);
-    return{ok:false,error:e.toString()};
-  }
+
+    // Script-Tag einfügen → GET-Request an Apps Script
+    const script=document.createElement('script');
+    script.id=cbName;
+    script.src=url+'?'+params.toString();
+    script.onerror=()=>{cleanup();resolve({ok:false,error:'Script-Fehler'});};
+    document.head.appendChild(script);
+  });
 }
 
 function addEntry(){
